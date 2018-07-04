@@ -4,8 +4,9 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import org.apache.catalina.LifecycleException;
+import org.apache.catalina.LifecycleState;
 import org.apache.catalina.Session;
-import org.apache.catalina.session.StandardManager;
+import org.apache.catalina.session.ManagerBase;
 import org.apache.catalina.session.StandardSession;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
@@ -13,7 +14,7 @@ import org.bson.Document;
 
 import java.io.IOException;
 
-public class MongoStandardManager extends StandardManager {
+public class MongoStandardManager extends ManagerBase {
 
     private static final Log log = LogFactory.getLog(MongoStandardManager.class);
 
@@ -53,6 +54,12 @@ public class MongoStandardManager extends StandardManager {
     }
 
     @Override
+    protected void startInternal() throws LifecycleException {
+        super.startInternal();
+        this.setState(LifecycleState.STARTING);
+    }
+
+    @Override
     public Session findSession(String id) throws IOException {
         return this.createSession(id);
     }
@@ -61,4 +68,15 @@ public class MongoStandardManager extends StandardManager {
     protected StandardSession getNewSession() {
         return new MongoSession(this, this.coll);
     }
+
+    @Override
+    public void load() throws ClassNotFoundException, IOException {
+
+    }
+
+    @Override
+    public void unload() throws IOException {
+
+    }
+
 }
