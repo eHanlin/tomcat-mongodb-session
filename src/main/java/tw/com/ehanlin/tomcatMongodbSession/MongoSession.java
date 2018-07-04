@@ -46,6 +46,13 @@ final public class MongoSession extends StandardSession {
         syncToMongo();
     }
 
+    @Override
+    protected void removeAttributeInternal(String name, boolean notify) {
+        log.info("removeAttributeInternal id=" + this.id);
+        super.removeAttributeInternal(name, notify);
+        syncToMongo();
+    }
+
     private void syncFromMongo() {
         log.info("syncFromMongo id=" + this.id);
         Document sessionData = coll.find(eq("_id", this.id)).first();
