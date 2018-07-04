@@ -7,10 +7,7 @@ import com.mongodb.client.MongoCursor;
 import static com.mongodb.client.model.Filters.*;
 
 import com.mongodb.client.model.ReplaceOptions;
-import com.mongodb.client.model.UpdateOptions;
 import org.apache.catalina.Session;
-import org.apache.catalina.session.PersistentManager;
-import org.apache.catalina.session.StandardManager;
 import org.apache.catalina.session.StoreBase;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
@@ -80,54 +77,44 @@ final public class MongoStore extends StoreBase {
     @Override
     public Session load(String id) throws ClassNotFoundException, IOException {
         log.info("load id=" + id);
-        HttpSession session = (HttpSession) this.manager.createSession(id);
-        try{
-            Document sessionData = coll.find(eq("_id", id)).first();
-            if(sessionData != null){
-                sessionData.forEach((k, v) -> session.setAttribute(k, v));
-            }
+        Document sessionData = coll.find(eq("_id", id)).first();
+        if(sessionData != null){
+            HttpSession session = (HttpSession) this.manager.createSession(id);
+            sessionData.forEach((k, v) -> session.setAttribute(k, v));
             log.info("loaded id=" + id);
-        } catch (Throwable ex) {
-            ex.printStackTrace();
+            return (Session) session;
+        }else{
+            return null;
         }
-        return (Session) session;
     }
 
     @Override
     public void save(Session session) throws IOException {
-        log.info("save id=" + session.getId());
-        try {
-            HttpSession httpSession = (HttpSession) session;
-            Enumeration<String> names = httpSession.getAttributeNames();
-            Document doc = new Document();
-            while (names.hasMoreElements()) {
-                String k = names.nextElement();
-                doc.put(k, httpSession.getAttribute(k));
-            }
-            coll.replaceOne(eq("_id", session.getId()), doc, new ReplaceOptions().upsert(true));
-            log.info("saved id=" + session.getId());
-        } catch (Throwable ex) {
-            ex.printStackTrace();
+        save((HttpSession) session);
+    }
+
+    public void save(HttpSession httpSession) {
+        log.info("save id=" + httpSession.getId());
+        Enumeration<String> names = httpSession.getAttributeNames();
+        Document doc = new Document();
+        while (names.hasMoreElements()) {
+            String k = names.nextElement();
+            doc.put(k, httpSession.getAttribute(k));
         }
+        coll.replaceOne(eq("_id", httpSession.getId()), doc, new ReplaceOptions().upsert(true));
+        log.info("saved id=" + httpSession.getId());
     }
 
     @Override
     public void remove(String id) throws IOException {
         log.info("remove id=" + id);
-        try {
-            coll.deleteOne(eq("_id", id));
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-        }
+        coll.deleteOne(eq("_id", id));
     }
 
     @Override
+    @Deprecated
     public void clear() throws IOException {
         log.info("clear");
-        try {
-            coll.drop();
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-        }
+        //coll.drop();
     }
 }
