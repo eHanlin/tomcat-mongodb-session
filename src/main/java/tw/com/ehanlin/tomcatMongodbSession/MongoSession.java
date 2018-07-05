@@ -1,7 +1,7 @@
 package tw.com.ehanlin.tomcatMongodbSession;
 
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import org.bson.Document;
 
 import org.apache.catalina.Manager;
@@ -62,7 +62,7 @@ final public class MongoSession extends StandardSession {
         log.info("syncedFromMongo id=" + this.id);
     }
 
-    private static ReplaceOptions upsertOptions = new ReplaceOptions().upsert(true);
+    private static UpdateOptions upsertOptions = new UpdateOptions().upsert(true);
 
     private void syncToMongo() {
         log.info("syncToMongo id=" + this.id);

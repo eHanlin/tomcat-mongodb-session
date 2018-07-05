@@ -1,12 +1,12 @@
 package tw.com.ehanlin.tomcatMongodbSession;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import static com.mongodb.client.model.Filters.*;
 
-import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import org.apache.catalina.Session;
 import org.apache.catalina.session.StoreBase;
 import org.apache.juli.logging.Log;
@@ -46,21 +46,21 @@ final public class MongoStore extends StoreBase {
         return collection;
     }
 
-    private MongoClient client;
     private MongoCollection<Document> coll;
 
     @Override
     protected void initInternal() {
         super.initInternal();
         log.info("initInternal uri=" + uri + " db=" + db + " collection=" + collection);
-        client = MongoClients.create(uri);
-        coll = client.getDatabase(db).getCollection(collection);
+        this.coll = new MongoClient(new MongoClientURI(this.uri))
+                .getDatabase(this.db)
+                .getCollection(this.collection);
     }
 
     @Override
     public int getSize() throws IOException {
         log.info("getSize");
-        return (int) coll.countDocuments();
+        return (int) coll.count();
     }
 
     @Override
@@ -93,6 +93,8 @@ final public class MongoStore extends StoreBase {
         save((HttpSession) session);
     }
 
+    private static UpdateOptions upsertOptions = new UpdateOptions().upsert(true);
+
     public void save(HttpSession httpSession) {
         log.info("save id=" + httpSession.getId());
         Enumeration<String> names = httpSession.getAttributeNames();
@@ -101,7 +103,7 @@ final public class MongoStore extends StoreBase {
             String k = names.nextElement();
             doc.put(k, httpSession.getAttribute(k));
         }
-        coll.replaceOne(eq("_id", httpSession.getId()), doc, new ReplaceOptions().upsert(true));
+        coll.replaceOne(eq("_id", httpSession.getId()), doc, upsertOptions);
         log.info("saved id=" + httpSession.getId());
     }
 

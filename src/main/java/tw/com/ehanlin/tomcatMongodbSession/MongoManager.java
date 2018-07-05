@@ -1,7 +1,7 @@
 package tw.com.ehanlin.tomcatMongodbSession;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
@@ -42,15 +42,15 @@ public class MongoManager extends ManagerBase {
         return this.collection;
     }
 
-    private MongoClient client;
     private MongoCollection<Document> coll;
 
     @Override
     protected void initInternal() throws LifecycleException {
         super.initInternal();
-        log.info("initInternal uri=" + uri + " db=" + db + " collection=" + collection);
-        this.client = MongoClients.create(uri);
-        this.coll = client.getDatabase(db).getCollection(collection);
+        log.info("initInternal uri=" + this.uri + " db=" + this.db + " collection=" + this.collection);
+        this.coll = new MongoClient(new MongoClientURI(this.uri))
+                        .getDatabase(this.db)
+                        .getCollection(this.collection);
     }
 
     @Override
