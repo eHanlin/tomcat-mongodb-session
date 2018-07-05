@@ -51,6 +51,8 @@ public class MongoManager extends ManagerBase {
         this.coll = new MongoClient(new MongoClientURI(this.uri))
                         .getDatabase(this.db)
                         .getCollection(this.collection);
+
+        this.setSessionIdGenerator(new MongoSessionIdGenerator(this.coll));
     }
 
     @Override
