@@ -26,7 +26,7 @@ public class MongoSessionIdGenerator extends StandardSessionIdGenerator {
 
     @Override
     public String generateSessionId(String route) {
-        log.info("generateSessionId");
+        //log.info("generateSessionId");
 
         String id = null;
 

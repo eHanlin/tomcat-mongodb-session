@@ -51,7 +51,7 @@ final public class MongoStore extends StoreBase {
     @Override
     protected void initInternal() {
         super.initInternal();
-        log.info("initInternal uri=" + uri + " db=" + db + " collection=" + collection);
+        //log.info("initInternal uri=" + uri + " db=" + db + " collection=" + collection);
         this.coll = new MongoClient(new MongoClientURI(this.uri))
                 .getDatabase(this.db)
                 .getCollection(this.collection);
@@ -59,13 +59,13 @@ final public class MongoStore extends StoreBase {
 
     @Override
     public int getSize() throws IOException {
-        log.info("getSize");
+        //log.info("getSize");
         return (int) coll.count();
     }
 
     @Override
     public String[] keys() throws IOException {
-        log.info("keys");
+        //log.info("keys");
         ArrayList<String> list = new ArrayList<>();
         MongoCursor<String> iterator = coll.distinct("_id", String.class).iterator();
         iterator.forEachRemaining((key) -> list.add(key));
@@ -76,12 +76,12 @@ final public class MongoStore extends StoreBase {
 
     @Override
     public Session load(String id) throws ClassNotFoundException, IOException {
-        log.info("load id=" + id);
+        //log.info("load id=" + id);
         Document sessionData = coll.find(eq("_id", id)).first();
         if(sessionData != null){
             HttpSession session = (HttpSession) this.manager.createSession(id);
             sessionData.forEach((k, v) -> session.setAttribute(k, v));
-            log.info("loaded id=" + id);
+            //log.info("loaded id=" + id);
             return (Session) session;
         }else{
             return null;
@@ -96,7 +96,7 @@ final public class MongoStore extends StoreBase {
     private static UpdateOptions upsertOptions = new UpdateOptions().upsert(true);
 
     public void save(HttpSession httpSession) {
-        log.info("save id=" + httpSession.getId());
+        //log.info("save id=" + httpSession.getId());
         Enumeration<String> names = httpSession.getAttributeNames();
         Document doc = new Document();
         while (names.hasMoreElements()) {
@@ -104,19 +104,19 @@ final public class MongoStore extends StoreBase {
             doc.put(k, httpSession.getAttribute(k));
         }
         coll.replaceOne(eq("_id", httpSession.getId()), doc, upsertOptions);
-        log.info("saved id=" + httpSession.getId());
+        //log.info("saved id=" + httpSession.getId());
     }
 
     @Override
     public void remove(String id) throws IOException {
-        log.info("remove id=" + id);
+        //log.info("remove id=" + id);
         coll.deleteOne(eq("_id", id));
     }
 
     @Override
     @Deprecated
     public void clear() throws IOException {
-        log.info("clear");
+        //log.info("clear");
         //coll.drop();
     }
 }

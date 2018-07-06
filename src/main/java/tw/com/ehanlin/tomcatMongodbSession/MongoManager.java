@@ -47,7 +47,7 @@ public class MongoManager extends ManagerBase {
     @Override
     protected void initInternal() throws LifecycleException {
         super.initInternal();
-        log.info("initInternal uri=" + this.uri + " db=" + this.db + " collection=" + this.collection);
+        //log.info("initInternal uri=" + this.uri + " db=" + this.db + " collection=" + this.collection);
         this.coll = new MongoClient(new MongoClientURI(this.uri))
                         .getDatabase(this.db)
                         .getCollection(this.collection);
