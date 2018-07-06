@@ -10,16 +10,26 @@ import org.apache.catalina.session.StandardSession;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
+import java.util.regex.Pattern;
+
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Updates.*;
 
 final public class MongoSession extends StandardSession {
 
+    private static final Log log = LogFactory.getLog(MongoSession.class);
+
     private static final String SESSION_ID = "_id";
     private static final String CREATE_DATE = "_createDate";
     private static final String LAST_UPDATE_DATE = "_lastUpdateDate";
 
-    private static final Log log = LogFactory.getLog(MongoSession.class);
+    private static final FindOneAndUpdateOptions findUpsertOptions = new FindOneAndUpdateOptions().upsert(true);
+    private static final UpdateOptions upsertOptions = new UpdateOptions().upsert(true);
+
+    private static final Pattern systemKeyPattern = Pattern.compile("^_.*");
+    private static boolean isSystemKey(String key) {
+        return systemKeyPattern.matcher(key).matches();
+    }
 
     public MongoSession(Manager manager) {
         super(manager);
@@ -59,8 +69,6 @@ final public class MongoSession extends StandardSession {
         syncRemoveOneAttribute(name);
     }
 
-    private static FindOneAndUpdateOptions findUpsertOptions = new FindOneAndUpdateOptions().upsert(true);
-
     private void syncFromMongo() {
         //log.info("syncFromMongo id=" + this.id);
         long now = System.currentTimeMillis();
@@ -70,18 +78,16 @@ final public class MongoSession extends StandardSession {
             findUpsertOptions);
 
         if(sessionData != null){
-            sessionData.forEach((k, v) -> {if(k != null && v != null) this.attributes.put(k, v);});
+            sessionData.forEach((k, v) -> {if(k != null && v != null && !isSystemKey(k)) this.attributes.put(k, v);});
         }
         //log.info("syncedFromMongo id=" + this.id);
     }
 
-    private static UpdateOptions upsertOptions = new UpdateOptions().upsert(true);
-
     private void syncToMongo() {
         //log.info("syncToMongo id=" + this.id);
         Document doc = new Document();
-        doc.put(LAST_UPDATE_DATE, System.currentTimeMillis());
         this.attributes.forEach((k, v) -> doc.put(k, v));
+        doc.put(LAST_UPDATE_DATE, System.currentTimeMillis());
 
         coll.replaceOne(eq(SESSION_ID, this.id), doc, upsertOptions);
         //log.info("syncedToMongo id=" + this.id);
@@ -97,9 +103,11 @@ final public class MongoSession extends StandardSession {
 
     private void syncRemoveOneAttribute(String name) {
         //log.info("syncRemoveOneAttribute id=" + this.id + "name=" + name);
-        coll.updateOne(
-            eq(SESSION_ID, this.id),
-            new Document("$set", new Document(LAST_UPDATE_DATE, System.currentTimeMillis()))
-                .append("$unset", new Document(name, "")));
+        if(!isSystemKey(name)){
+            coll.updateOne(
+                eq(SESSION_ID, this.id),
+                new Document("$set", new Document(LAST_UPDATE_DATE, System.currentTimeMillis()))
+                    .append("$unset", new Document(name, "")));
+        }
     }
 }
