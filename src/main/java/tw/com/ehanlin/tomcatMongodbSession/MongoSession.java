@@ -70,7 +70,7 @@ final public class MongoSession extends StandardSession {
             findUpsertOptions);
 
         if(sessionData != null){
-            sessionData.forEach((k, v) -> this.attributes.put(k, v));
+            sessionData.forEach((k, v) -> {if(k != null && v != null) this.attributes.put(k, v);});
         }
         //log.info("syncedFromMongo id=" + this.id);
     }
