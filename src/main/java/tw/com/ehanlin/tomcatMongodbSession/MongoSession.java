@@ -1,6 +1,7 @@
 package tw.com.ehanlin.tomcatMongodbSession;
 
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.UpdateOptions;
 import org.bson.Document;
 
@@ -10,10 +11,13 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Updates.set;
-import static com.mongodb.client.model.Updates.unset;
+import static com.mongodb.client.model.Updates.*;
 
 final public class MongoSession extends StandardSession {
+
+    private static final String SESSION_ID = "_id";
+    private static final String CREATE_DATE = "_createDate";
+    private static final String LAST_UPDATE_DATE = "_lastUpdateDate";
 
     private static final Log log = LogFactory.getLog(MongoSession.class);
 
@@ -55,9 +59,16 @@ final public class MongoSession extends StandardSession {
         syncRemoveOneAttribute(name);
     }
 
+    private static FindOneAndUpdateOptions findUpsertOptions = new FindOneAndUpdateOptions().upsert(true);
+
     private void syncFromMongo() {
         //log.info("syncFromMongo id=" + this.id);
-        Document sessionData = coll.find(eq("_id", this.id)).first();
+        long now = System.currentTimeMillis();
+        Document sessionData = coll.findOneAndUpdate(
+            eq(SESSION_ID, this.id),
+            new Document("$setOnInsert", new Document(CREATE_DATE, now).append(LAST_UPDATE_DATE, now)),
+            findUpsertOptions);
+
         if(sessionData != null){
             sessionData.forEach((k, v) -> this.attributes.put(k, v));
         }
@@ -69,18 +80,26 @@ final public class MongoSession extends StandardSession {
     private void syncToMongo() {
         //log.info("syncToMongo id=" + this.id);
         Document doc = new Document();
+        doc.put(LAST_UPDATE_DATE, System.currentTimeMillis());
         this.attributes.forEach((k, v) -> doc.put(k, v));
-        coll.replaceOne(eq("_id", this.id), doc, upsertOptions);
+
+        coll.replaceOne(eq(SESSION_ID, this.id), doc, upsertOptions);
         //log.info("syncedToMongo id=" + this.id);
     }
 
     private void syncAppendOneAttribute(String name) {
         //log.info("syncAppendOneAttribute id=" + this.id + "name=" + name);
-        coll.updateOne(eq("_id", this.id), set(name, this.attributes.get(name)), upsertOptions);
+        coll.updateOne(
+            eq(SESSION_ID, this.id),
+            new Document("$set", new Document(name, this.attributes.get(name)).append(LAST_UPDATE_DATE, System.currentTimeMillis())),
+            upsertOptions);
     }
 
     private void syncRemoveOneAttribute(String name) {
         //log.info("syncRemoveOneAttribute id=" + this.id + "name=" + name);
-        coll.updateOne(eq("_id", this.id), unset(name));
+        coll.updateOne(
+            eq(SESSION_ID, this.id),
+            new Document("$set", new Document(LAST_UPDATE_DATE, System.currentTimeMillis()))
+                .append("$unset", new Document(name, "")));
     }
 }
